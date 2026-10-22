@@ -1,0 +1,138 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#080d18">
+<title>CryptoPilot | Trading Dashboard</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#080d18;color:#edf3ff;font-family:Arial,sans-serif}
+header{padding:20px;background:#10192b;border-bottom:1px solid #26334b}
+h1{margin:0;color:#63e6be;font-size:25px}
+header p{color:#a7b5cc;margin-bottom:0}
+main{padding:18px;max-width:1100px;margin:auto}
+.note{background:#19263a;padding:13px;border-radius:12px;color:#cbd5e1;font-size:13px;line-height:1.6}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin:18px 0}
+.card{background:#111b2d;border:1px solid #24334b;border-radius:14px;padding:17px}
+.label{font-size:13px;color:#9baec8}
+.value{font-size:21px;font-weight:bold;margin-top:12px;overflow-wrap:anywhere}
+.green{color:#63e6be}
+.red{color:#ff7777}
+section{background:#111b2d;padding:18px;border-radius:14px;margin:15px 0;border:1px solid #24334b}
+h2{font-size:18px;margin-top:0}
+button,select{padding:12px;border-radius:8px;border:0;font-size:14px}
+button{background:#63e6be;color:#07130f;font-weight:bold;cursor:pointer}
+select{background:#202e44;color:white}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:12px 7px;border-bottom:1px solid #26334b}
+.small{font-size:12px;color:#9baec8;line-height:1.6}
+footer{text-align:center;color:#8190a8;padding:25px;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+<h1>◈ CryptoPilot</h1>
+<p>Crypto Market Analysis Dashboard</p>
+</header>
+<main>
+<div class="note">
+<b>DEMO DASHBOARD</b><br>
+Market prices below will load from a public market data source when available. This page does not execute trades. Signals are not guaranteed.
+</div><div class="grid">
+<div class="card"><div class="label">Bitcoin (BTC)</div><div class="value" id="btc">Loading...</div><div class="small" id="btcchange">--</div></div>
+<div class="card"><div class="label">Ethereum (ETH)</div><div class="value" id="eth">Loading...</div><div class="small" id="ethchange">--</div></div>
+<div class="card"><div class="label">BNB</div><div class="value" id="bnb">Loading...</div><div class="small" id="bnbchange">--</div></div>
+<div class="card"><div class="label">Solana (SOL)</div><div class="value" id="sol">Loading...</div><div class="small" id="solchange">--</div></div>
+</div><section>
+<h2>Market Overview</h2>
+<div class="row">
+<button onclick="loadPrices()">↻ Refresh Market</button>
+<span class="small" id="updated">Not updated yet</span>
+</div>
+<p class="small" id="status">Connecting to market data...</p>
+</section><section>
+<h2>Coin Watchlist</h2>
+<div style="overflow-x:auto">
+<table>
+<thead><tr><th>Coin</th><th>Price (USD)</th><th>24h Change</th></tr></thead>
+<tbody id="watchlist"><tr><td colspan="3">Loading market data...</td></tr></tbody>
+</table>
+</div>
+</section><section>
+<h2>Risk Calculator</h2>
+<p class="small">Spot trade estimate. Enter your values in USD.</p>
+<div class="row">
+<label>Account ($)<br><input id="account" type="number" value="17" min="0" style="padding:11px;width:120px;margin-top:6px"></label>
+<label>Risk (%)<br><input id="risk" type="number" value="1" min="0.1" max="100" step="0.1" style="padding:11px;width:120px;margin-top:6px"></label>
+<label>Entry price<br><input id="entry" type="number" placeholder="Entry" min="0" style="padding:11px;width:120px;margin-top:6px"></label>
+<label>Stop-loss price<br><input id="stop" type="number" placeholder="Stop loss" min="0" style="padding:11px;width:120px;margin-top:6px"></label>
+</div>
+<p><button onclick="calculate()">Calculate Risk</button></p>
+<div id="riskresult" class="small">Enter entry and stop-loss to calculate.</div>
+</section><section>
+<h2>Trading Alerts</h2>
+<p class="small">Automated buy/sell alerts and technical analysis are not configured yet. No buy or sell signal is being issued by this demo.</p>
+</section>
+<footer>CryptoPilot • Analysis only • No automatic trading</footer>
+</main>
+<script>
+const coins=[
+{id:"bitcoin",name:"BTC"},
+{id:"ethereum",name:"ETH"},
+{id:"binancecoin",name:"BNB"},
+{id:"solana",name:"SOL"}
+];
+async function loadPrices(){
+const status=document.getElementById("status");
+status.textContent="Fetching public market data...";
+try{
+const ids=coins.map(c=>c.id).join(",");
+const url="https://api.coingecko.com/api/v3/simple/price?ids="+ids+"&vs_currencies=usd&include_24hr_change=true";
+const response=await fetch(url);
+if(!response.ok)throw new Error("Market data unavailable ("+response.status+")");
+const data=await response.json();
+const names={bitcoin:"btc",ethereum:"eth",binancecoin:"bnb",solana:"sol"};
+const rows=[];
+coins.forEach(c=>{
+const item=data[c.id];
+if(!item||typeof item.usd!=="number")return;
+const price=item.usd;
+const change=item.usd_24h_change;
+document.getElementById(names[c.id]).textContent="$"+price.toLocaleString("en-US",{maximumFractionDigits:6});
+const ch=document.getElementById(names[c.id]+"change");
+ch.textContent=Number.isFinite(change)?change.toFixed(2)+"% (24h)":"Change unavailable";
+ch.className="small "+(change>=0?"green":"red");
+rows.push("<tr><td>"+c.name+"</td><td>$"+price.toLocaleString("en-US",{maximumFractionDigits:6})+"</td><td class='"+(change>=0?"green":"red")+"'>"+(Number.isFinite(change)?change.toFixed(2)+"%":"--")+"</td></tr>");
+});
+if(!rows.length)throw new Error("No coin prices returned");
+document.getElementById("watchlist").innerHTML=rows.join("");
+document.getElementById("updated").textContent="Updated: "+new Date().toLocaleTimeString();
+status.textContent="Market data loaded. Public API; delays and limits may apply.";
+}catch(e){
+status.textContent="Could not load live prices. Tap Refresh later. "+e.message;
+coins.forEach(c=>{document.getElementById(({bitcoin:"btc",ethereum:"eth",binancecoin:"bnb",solana:"sol"})[c.id]).textContent="Unavailable";});
+document.getElementById("watchlist").innerHTML="<tr><td colspan='3'>Live data unavailable. Try refresh.</td></tr>";
+}
+}
+function calculate(){
+const account=Number(document.getElementById("account").value);
+const risk=Number(document.getElementById("risk").value);
+const entry=Number(document.getElementById("entry").value);
+const stop=Number(document.getElementById("stop").value);
+const out=document.getElementById("riskresult");
+if(!(account>0&&risk>0&&risk<=100&&entry>0&&stop>0&&entry!==stop)){
+out.textContent="Please enter valid positive values. Entry and stop must differ.";
+return;
+}
+const riskMoney=account*risk/100;
+const distance=Math.abs(entry-stop)/entry;
+const position=riskMoney/distance;
+const stopPercent=Math.abs(entry-stop)/entry*100;
+out.innerHTML="Risk budget: $"+riskMoney.toFixed(2)+"<br>Stop distance: "+stopPercent.toFixed(2)+"%<br>Estimated position size: $"+position.toFixed(2)+"<br><br>Before fees/slippage. This estimate assumes a linear spot position; position size cannot exceed your available funds. Risk is not guaranteed.";
+}
+loadPrices();
+setInterval(loadPrices,60000);
+</script>
+</body>
+</html>
